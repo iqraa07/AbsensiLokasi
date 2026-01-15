@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "733836667034",
+    "project_id": "testing1-b4119",
+    "storage_bucket": "testing1-b4119.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:733836667034:android:5ab42e1182ab0f40b65723",
+        "android_client_info": {
+          "package_name": "com.iqra.absensi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxDWmCvcacL_sgcFDCtX6IadjLFFB9dPw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
