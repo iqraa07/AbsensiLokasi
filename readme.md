@@ -1,0 +1,174 @@
+# AbsensiLokasi (Android) — Absensi Berbasis Lokasi (Radius Kantor)
+
+Aplikasi Android (Jetpack Compose) untuk **absensi masuk/pulang berbasis lokasi** dengan validasi **radius kantor**, penyimpanan ke **Firebase Auth + Cloud Firestore**, serta tampilan **riwayat absensi**.
+
+> Catatan: Fitur **REGISTER sudah dihapus** (sesuai kebutuhan tugas) — aplikasi hanya menyediakan **Login**. Akun dibuat dari Firebase Console (Auth).
+
+---
+
+## ✨ Fitur Utama
+
+- ✅ **Login (Email/Password)** menggunakan **Firebase Authentication**
+- 📍 **Ambil lokasi realtime** (Fused Location Provider / Google Play Services)
+- 🧭 **Validasi radius kantor** (default **100 meter**) sebelum absensi bisa disimpan
+- 🛑 **Deteksi Mock Location** (anti lokasi palsu) → absensi ditolak jika terdeteksi
+- 🏷️ **Reverse Geocoding** → simpan alamat (hasil geocoder) ke database
+- 🧾 **Simpan absensi ke Firestore** (type: `IN` / `OUT`, timestamp, jarak, device, dll)
+- 🔁 **Aturan siklus absen**:
+  - `IN` hanya bisa kalau status terakhir `OUT` / belum ada absen hari itu
+  - `OUT` hanya bisa kalau status terakhir `IN`
+  - mendukung beberapa siklus masuk (mis. masuk lagi setelah pulang)
+- 🧠 **Auto Absen** (opsional):
+  - Jika **di dalam radius kantor**, aplikasi bisa otomatis trigger `IN/OUT` sesuai status
+- 🗺️ Tombol **Maps Kantor** & **Maps Saya** (langsung buka Google Maps)
+- 👤 **Profil karyawan** (nama tampil bisa diedit & tersimpan ke Firestore)
+- 🌗 **Toggle tema**: Light / Dark / System
+- 💾 **DataStore Preferences** untuk menyimpan:
+  - mode tema
+  - status Auto Absen
+
+---
+
+## 🧱 Tech Stack
+
+- **Kotlin**
+- **Jetpack Compose (Material 3)**
+- **Firebase**
+  - Authentication (Email/Password)
+  - Cloud Firestore
+- **Google Play Services Location**
+- **AndroidX DataStore Preferences**
+- Kotlin Coroutines
+
+---
+
+## 🗂️ Struktur Project (Ringkas)
+
+- `app/src/main/java/com/iqra/absensi/MainActivity.kt`  
+  Seluruh logic utama + UI Compose (Auth screen & Attendance screen)
+- `app/src/main/AndroidManifest.xml`  
+  Permission lokasi (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`)
+- `app/google-services.json`  
+  Konfigurasi Firebase (lihat catatan keamanan di bawah)
+
+---
+
+## 🔥 Skema Database (Firestore)
+
+Semua data disimpan di path:
+
+### 1) Employee Profile
+`companies/{companyId}/employees/{uid}`
+
+Field yang digunakan:
+- `uid` (String)
+- `name` (String)
+- `email` (String)
+- `createdAt` (Timestamp)
+- `updatedAt` (Timestamp)
+
+> Saat login berhasil, app akan otomatis membuat doc profile jika belum ada.
+
+### 2) Attendance
+`companies/{companyId}/attendance/{docId}`
+
+Field yang digunakan:
+- `employeeId` (String)
+- `type` (String): `"IN"` / `"OUT"`
+- `dateKey` (String): format `yyyy-MM-dd`
+- `lat` (Double)
+- `lng` (Double)
+- `accuracy` (Float)
+- `distance` (Double) → jarak ke kantor (meter)
+- `address` (String) → hasil reverse geocode (opsional)
+- `device` (String) → model device
+- `ts` (Timestamp) → waktu absensi
+
+---
+
+## ⚙️ Konfigurasi Penting
+
+Di `MainActivity.kt` terdapat konfigurasi default:
+
+- `OFFICE_LAT` / `OFFICE_LNG` → titik koordinat kantor
+- `OFFICE_RADIUS_M` → radius kantor (default 100m)
+- `companyId` → default `"cmpA"`
+
+Silakan ubah sesuai kebutuhan.
+
+---
+
+## ✅ Requirement
+
+- Android Studio (disarankan versi terbaru)
+- JDK 11
+- Android minSdk **24**
+- Device/emulator yang mendukung Google Play Services (untuk Location)
+- Firebase Project (Auth + Firestore)
+
+---
+
+## 🚀 Cara Menjalankan
+
+1. Clone repo ini
+2. Buka dengan **Android Studio**
+3. Pastikan Firebase sudah siap:
+   - Enable **Authentication → Email/Password**
+   - Buat **Cloud Firestore**
+4. Pastikan file `google-services.json` ada di:
+   - `app/google-services.json`
+5. Sync Gradle → Run
+
+---
+
+## 👤 Cara Membuat Akun (Karena Register Dihapus)
+
+Karena aplikasi **login-only**, buat akun dari Firebase Console:
+
+1. Firebase Console → **Authentication**
+2. Tab **Users** → Add user
+3. Masukkan email & password
+4. Login pakai akun tersebut di aplikasi
+
+---
+
+## 🔐 Permission yang Dipakai
+
+- `ACCESS_FINE_LOCATION`
+- `ACCESS_COARSE_LOCATION`
+
+Aplikasi akan meminta permission saat:
+- Refresh lokasi
+- Melakukan absen (IN/OUT)
+
+---
+
+## 🧪 Mode Emulator Firestore (Opsional)
+
+Ada opsi penggunaan Firestore emulator di `MainActivity.kt`:
+- `USE_EMULATOR` (default `false`)
+- `EMULATOR_HOST`
+- `EMULATOR_PORT`
+
+Kalau mau pakai emulator:
+1. Set `USE_EMULATOR = true`
+2. Pastikan host & port sesuai environment kamu
+3. Jalankan Firebase Emulator Suite
+
+---
+
+## 🖼️ Screenshot (Opsional)
+
+Tambahkan screenshot biar README makin bagus:
+
+- `docs/login.png`
+- `docs/attendance.png`
+- `docs/history.png`
+
+Contoh penulisan:
+
+```md
+## Screenshots
+![Login](docs/login.png)
+![Attendance](docs/attendance.png)
+![History](docs/history.png)
