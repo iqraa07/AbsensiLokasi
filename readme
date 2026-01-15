@@ -137,7 +137,8 @@ Karena aplikasi **login-only**, buat akun dari Firebase Console:
 - `ACCESS_FINE_LOCATION`
 - `ACCESS_COARSE_LOCATION`
 
----
 Aplikasi akan meminta permission saat:
 - Refresh lokasi
 - Melakukan absen (IN/OUT)
+
+```md
