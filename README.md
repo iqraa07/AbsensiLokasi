@@ -35,7 +35,7 @@ Aplikasi memvalidasi apakah pengguna berada **dalam radius kantor** sebelum data
 
 ---
 
-## Struktur Project (Ringkas)
+## Struktur Project
 
 - `app/src/main/java/com/iqra/absensi/MainActivity.kt`  
   Berisi UI (Compose) dan logika utama: login, lokasi, absensi, dan riwayat.
