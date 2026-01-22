@@ -1,174 +1,138 @@
 # AbsensiLokasi (Android) — Absensi Berbasis Lokasi (Radius Kantor)
 
-Aplikasi Android (Jetpack Compose) untuk **absensi masuk/pulang berbasis lokasi** dengan validasi **radius kantor**, penyimpanan ke **Firebase Auth + Cloud Firestore**, serta tampilan **riwayat absensi**.
+AbsensiLokasi adalah aplikasi Android untuk **absensi masuk dan pulang berbasis lokasi**.  
+Aplikasi memvalidasi apakah pengguna berada **dalam radius kantor** sebelum data absensi disimpan ke **Firebase Authentication** dan **Cloud Firestore**. Riwayat absensi juga bisa dilihat langsung dari aplikasi.
 
-> Catatan: Fitur **REGISTER sudah dihapus** (sesuai kebutuhan tugas) — aplikasi hanya menyediakan **Login**. Akun dibuat dari Firebase Console (Auth).
-
----
-
-## ✨ Fitur Utama
-
-- ✅ **Login (Email/Password)** menggunakan **Firebase Authentication**
-- 📍 **Ambil lokasi realtime** (Fused Location Provider / Google Play Services)
-- 🧭 **Validasi radius kantor** (default **100 meter**) sebelum absensi bisa disimpan
-- 🛑 **Deteksi Mock Location** (anti lokasi palsu) → absensi ditolak jika terdeteksi
-- 🏷️ **Reverse Geocoding** → simpan alamat (hasil geocoder) ke database
-- 🧾 **Simpan absensi ke Firestore** (type: `IN` / `OUT`, timestamp, jarak, device, dll)
-- 🔁 **Aturan siklus absen**:
-  - `IN` hanya bisa kalau status terakhir `OUT` / belum ada absen hari itu
-  - `OUT` hanya bisa kalau status terakhir `IN`
-  - mendukung beberapa siklus masuk (mis. masuk lagi setelah pulang)
-- 🧠 **Auto Absen** (opsional):
-  - Jika **di dalam radius kantor**, aplikasi bisa otomatis trigger `IN/OUT` sesuai status
-- 🗺️ Tombol **Maps Kantor** & **Maps Saya** (langsung buka Google Maps)
-- 👤 **Profil karyawan** (nama tampil bisa diedit & tersimpan ke Firestore)
-- 🌗 **Toggle tema**: Light / Dark / System
-- 💾 **DataStore Preferences** untuk menyimpan:
-  - mode tema
-  - status Auto Absen
+> Catatan: Fitur **Register** sengaja **tidak digunakan** untuk kebutuhan tugas. Aplikasi hanya menyediakan **Login** (akun dibuat dari Firebase Console).
 
 ---
 
-## 🧱 Tech Stack
+## Fitur Utama
 
-- **Kotlin**
-- **Jetpack Compose (Material 3)**
-- **Firebase**
-  - Authentication (Email/Password)
-  - Cloud Firestore
-- **Google Play Services Location**
-- **AndroidX DataStore Preferences**
-- Kotlin Coroutines
+- **Login** menggunakan Email/Password (Firebase Authentication)
+- Mengambil **lokasi realtime** dari perangkat (Google Play Services Location)
+- **Validasi radius kantor** (default ±100 meter) sebelum absensi tersimpan
+- **Deteksi lokasi palsu (mock location)** untuk mengurangi kecurangan
+- Menyimpan data absensi ke **Firestore** (IN/OUT, waktu, jarak, lokasi, dll)
+- **Aturan absensi IN/OUT** agar urutan masuk–pulang tetap konsisten
+- **Auto Absen (opsional)**: bisa otomatis melakukan IN/OUT saat berada di dalam radius sesuai status terakhir
+- Tombol cepat untuk membuka **Maps Kantor** dan **Maps Saya**
+- **Profil karyawan** (nama bisa diubah dan tersimpan di database)
+- **Tema aplikasi**: Light / Dark / System
+- Penyimpanan preferensi (tema & auto absen) menggunakan **DataStore**
 
 ---
 
-## 🗂️ Struktur Project (Ringkas)
+## Tech Stack
+
+- Kotlin  
+- Jetpack Compose (Material 3)  
+- Firebase Authentication (Email/Password)  
+- Cloud Firestore  
+- Google Play Services Location  
+- AndroidX DataStore Preferences  
+- Kotlin Coroutines  
+
+---
+
+## Struktur Project (Ringkas)
 
 - `app/src/main/java/com/iqra/absensi/MainActivity.kt`  
-  Seluruh logic utama + UI Compose (Auth screen & Attendance screen)
+  Berisi UI (Compose) dan logika utama: login, lokasi, absensi, dan riwayat.
 - `app/src/main/AndroidManifest.xml`  
   Permission lokasi (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`)
 - `app/google-services.json`  
-  Konfigurasi Firebase (lihat catatan keamanan di bawah)
+  Konfigurasi Firebase
 
 ---
 
-## 🔥 Skema Database (Firestore)
+## Skema Data (Firestore)
 
-Semua data disimpan di path:
+### 1) Profil Karyawan
+Path: `companies/{companyId}/employees/{uid}`
 
-### 1) Employee Profile
-`companies/{companyId}/employees/{uid}`
-
-Field yang digunakan:
+Field contoh:
 - `uid` (String)
 - `name` (String)
 - `email` (String)
 - `createdAt` (Timestamp)
 - `updatedAt` (Timestamp)
 
-> Saat login berhasil, app akan otomatis membuat doc profile jika belum ada.
+Aplikasi akan membuat profil otomatis setelah login jika belum ada.
 
-### 2) Attendance
-`companies/{companyId}/attendance/{docId}`
+### 2) Data Absensi
+Path: `companies/{companyId}/attendance/{docId}`
 
-Field yang digunakan:
+Field contoh:
 - `employeeId` (String)
-- `type` (String): `"IN"` / `"OUT"`
-- `dateKey` (String): format `yyyy-MM-dd`
-- `lat` (Double)
-- `lng` (Double)
+- `type` (String): `IN` / `OUT`
+- `dateKey` (String): `yyyy-MM-dd`
+- `lat` (Double), `lng` (Double)
 - `accuracy` (Float)
-- `distance` (Double) → jarak ke kantor (meter)
-- `address` (String) → hasil reverse geocode (opsional)
-- `device` (String) → model device
-- `ts` (Timestamp) → waktu absensi
+- `distance` (Double) → jarak ke titik kantor (meter)
+- `address` (String) → alamat hasil geocoding (opsional)
+- `device` (String)
+- `ts` (Timestamp)
 
 ---
 
-## ⚙️ Konfigurasi Penting
+## Konfigurasi Lokasi Kantor
 
-Di `MainActivity.kt` terdapat konfigurasi default:
+Konfigurasi utama ada di `MainActivity.kt`:
 
-- `OFFICE_LAT` / `OFFICE_LNG` → titik koordinat kantor
-- `OFFICE_RADIUS_M` → radius kantor (default 100m)
-- `companyId` → default `"cmpA"`
+- `OFFICE_LAT` / `OFFICE_LNG` → koordinat kantor  
+- `OFFICE_RADIUS_M` → radius kantor (meter)  
+- `companyId` → id perusahaan (default: `cmpA`)  
 
-Silakan ubah sesuai kebutuhan.
+Silakan sesuaikan sesuai titik lokasi yang digunakan.
 
 ---
 
-## ✅ Requirement
+## Requirement
 
-- Android Studio (disarankan versi terbaru)
+- Android Studio
 - JDK 11
-- Android minSdk **24**
-- Device/emulator yang mendukung Google Play Services (untuk Location)
+- Min SDK 24
+- Device/emulator yang mendukung Google Play Services
 - Firebase Project (Auth + Firestore)
 
 ---
 
-## 🚀 Cara Menjalankan
+## Cara Menjalankan
 
-1. Clone repo ini
-2. Buka dengan **Android Studio**
-3. Pastikan Firebase sudah siap:
-   - Enable **Authentication → Email/Password**
+1. Clone repository
+2. Buka project di Android Studio
+3. Siapkan Firebase:
+   - Aktifkan **Authentication → Email/Password**
    - Buat **Cloud Firestore**
-4. Pastikan file `google-services.json` ada di:
-   - `app/google-services.json`
-5. Sync Gradle → Run
+4. Pastikan `google-services.json` berada di `app/`
+5. Sync Gradle, lalu Run
 
 ---
 
-## 👤 Cara Membuat Akun (Karena Register Dihapus)
+## Cara Membuat Akun (Karena Register Tidak Dipakai)
 
-Karena aplikasi **login-only**, buat akun dari Firebase Console:
-
-1. Firebase Console → **Authentication**
-2. Tab **Users** → Add user
-3. Masukkan email & password
-4. Login pakai akun tersebut di aplikasi
+1. Masuk Firebase Console → **Authentication**
+2. Buka tab **Users** → **Add user**
+3. Isi email & password
+4. Login di aplikasi menggunakan akun tersebut
 
 ---
 
-## 🔐 Permission yang Dipakai
+## Permission yang Digunakan
 
 - `ACCESS_FINE_LOCATION`
 - `ACCESS_COARSE_LOCATION`
 
-Aplikasi akan meminta permission saat:
-- Refresh lokasi
-- Melakukan absen (IN/OUT)
+Permission diminta saat aplikasi mengambil lokasi untuk proses absensi.
 
 ---
 
-## 🧪 Mode Emulator Firestore (Opsional)
+## Mode Firestore Emulator (Opsional)
 
-Ada opsi penggunaan Firestore emulator di `MainActivity.kt`:
-- `USE_EMULATOR` (default `false`)
+Jika ingin memakai Firestore Emulator, atur pada `MainActivity.kt`:
+- `USE_EMULATOR` (default: `false`)
 - `EMULATOR_HOST`
 - `EMULATOR_PORT`
 
-Kalau mau pakai emulator:
-1. Set `USE_EMULATOR = true`
-2. Pastikan host & port sesuai environment kamu
-3. Jalankan Firebase Emulator Suite
-
 ---
-
-## 🖼️ Screenshot (Opsional)
-
-Tambahkan screenshot biar README makin bagus:
-
-- `docs/login.png`
-- `docs/attendance.png`
-- `docs/history.png`
-
-Contoh penulisan:
-
-```md
-## Screenshots
-![Login](docs/login.png)
-![Attendance](docs/attendance.png)
-![History](docs/history.png)
